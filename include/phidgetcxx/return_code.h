@@ -58,7 +58,7 @@ constexpr bool operator!(const ReturnCode code) noexcept {
     return code != ReturnCode::Ok;
 }
 
-constexpr ReturnCode as_return_code(const PhidgetReturnCode code) noexcept {
+constexpr ReturnCode as_cxx(const PhidgetReturnCode code) noexcept {
     return static_cast<ReturnCode>(code);
 }
 
