@@ -3,6 +3,7 @@
 
 #include <cstddef> // to fix a compiler error in <phidget22.h>
 
+#include <gsl/gsl>
 #include <phidget22.h>
 
 namespace phidgetcxx {
@@ -52,6 +53,10 @@ enum class ReturnCode {
     NotConfigured = EPHIDGET_NOTCONFIGURED,
     Eof = EPHIDGET_EOF
 };
+
+constexpr bool operator!(const ReturnCode code) noexcept {
+    return code != ReturnCode::Ok;
+}
 
 constexpr ReturnCode as_return_code(const PhidgetReturnCode code) noexcept {
     return static_cast<ReturnCode>(code);
