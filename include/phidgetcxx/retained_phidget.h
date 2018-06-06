@@ -22,17 +22,11 @@ public:
 
     ~RetainedPhidget();
 
-    constexpr bool has_phidget() const noexcept {
-        return static_cast<bool>(phidget_);
-    }
+    bool has_phidget() const noexcept;
+    
+    Phidget& phidget() noexcept;
 
-    constexpr Phidget& phidget() noexcept {
-        return phidget_.value();
-    }
-
-    constexpr const Phidget& phidget() const noexcept {
-        return phidget_.value();
-    }
+    const Phidget& phidget() const noexcept;
 
 private:
     RetainedPhidget() = default;

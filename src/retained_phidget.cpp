@@ -35,6 +35,18 @@ RetainedPhidget::~RetainedPhidget() {
     release();
 }
 
+bool RetainedPhidget::has_phidget() const noexcept {
+    return static_cast<bool>(phidget_);
+}
+
+Phidget& RetainedPhidget::phidget() noexcept {
+    return phidget_.value();
+}
+
+const Phidget& RetainedPhidget::phidget() const noexcept {
+    return phidget_.value();
+}
+
 RetainedPhidget
 RetainedPhidget::from_retained(Phidget &phidget) noexcept {
     return from_retained(phidget.handle_);
