@@ -6,6 +6,8 @@
 #include "phidgetcxx/device_class.h"
 #include "phidgetcxx/device_id.h"
 #include "phidgetcxx/exception.h"
+#include "phidgetcxx/phidget_fwd.h"
+#include "phidgetcxx/retained_phidget_fwd.h"
 #include "phidgetcxx/return_code.h"
 
 #include <cstdint>
@@ -15,8 +17,6 @@
 #include <phidget22.h>
 
 namespace phidgetcxx {
-
-class Phidget;
 
 template <typename T>
 class Reference {
@@ -29,7 +29,7 @@ public:
         return *this;
     }
 
-    Reference& operator=(const T &value) {
+    Reference& operator=(const T value) {
         set(value);
 
         return *this;
@@ -40,7 +40,7 @@ public:
     }
 
 private:
-    using SetPtrT = void (Phidget::*)(const T&);
+    using SetPtrT = void (Phidget::*)(T);
     using GetPtrT = T (Phidget::*)() const;
 
     constexpr Reference(Phidget &phidget, const SetPtrT set_ptr,
@@ -51,7 +51,7 @@ private:
         return ((*phidget_ptr_).*get_ptr_)();
     }
 
-    void set(const T &value) {
+    void set(const T value) {
         return ((*phidget_ptr_).*set_ptr_)(value);
     }
 
@@ -66,13 +66,11 @@ public:
     template <typename T>
     friend class Reference;
 
+    friend RetainedPhidget;
+
     Phidget() = default;
 
     ~Phidget();
-
-    void release();
-
-    void retain();
 
     bool is_attached() const;
 
@@ -118,28 +116,61 @@ public:
 
     bool is_channel() const;
 
+    Reference<bool> is_local();
+
     bool is_local() const;
+
+    Reference<bool> is_remote();
+
+    bool is_remote() const;
 
     void open();
 
     void open_wait_for_attachment(std::chrono::milliseconds timeout);
 
+    RetainedPhidget parent() const;
+
+    gsl::czstring_span<> server_hostname() const;
+
+    Reference<gsl::czstring_span<>> server_name();
+
+    gsl::czstring_span<> server_name() const;
+
+    gsl::czstring_span<> server_peer_name() const;
+
+    void write_device_label(gsl::czstring_span<> device_label);
+
 private:
+    constexpr explicit Phidget(const PhidgetHandle handle) noexcept
+    : handle_{ handle } { }
+
     int get_channel() const;
 
-    void set_channel(const int &channel);
+    void set_channel(int channel);
 
     std::chrono::milliseconds get_data_interval() const;
 
-    void set_data_interval(const std::chrono::milliseconds &interval);
+    void set_data_interval(std::chrono::milliseconds interval);
 
     gsl::czstring_span<> get_device_label() const;
 
-    void set_device_label(const gsl::czstring_span<> &label);
+    void set_device_label(gsl::czstring_span<> label);
 
     std::int32_t get_device_serial_number() const;
 
-    void set_device_serial_number(const std::int32_t &serial_number);
+    void set_device_serial_number(std::int32_t serial_number);
+
+    bool get_is_local() const;
+
+    void set_is_local(bool is_local);
+
+    bool get_is_remote() const;
+
+    void set_is_remote(bool is_remote);
+
+    gsl::czstring_span<> get_server_name() const;
+
+    void set_server_name(gsl::czstring_span<> server_name);
 
     PhidgetHandle handle_;
 };

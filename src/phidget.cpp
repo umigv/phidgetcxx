@@ -1,5 +1,8 @@
 #include "phidgetcxx/phidget.h"
 
+#include "phidgetcxx/retained_phidget.h"
+
+#include <climits>
 #include <cstring>
 #include <limits>
 
@@ -11,9 +14,7 @@ static inline gsl::czstring_span<> as_span(const gsl::czstring<> string) {
         throw std::invalid_argument{ "phidgetcxx::detail::as_span" };
     }
 
-    const auto length =
-        static_cast<gsl::cstring_span<>::index_type>(std::strlen(string));
-    const gsl::cstring_span<> span{ string, length };
+    const gsl::cstring_span<> span = gsl::ensure_z(string);
 
     return { span };
 }
@@ -21,24 +22,9 @@ static inline gsl::czstring_span<> as_span(const gsl::czstring<> string) {
 } // namespace detail
 
 Phidget::~Phidget() {
+    // this is bad style
     if (is_attached()) {
         close();
-    }
-}
-
-void Phidget::release() {
-    const auto ret = as_cxx(Phidget_release(&handle_));
-
-    if (!ret) {
-        throw Exception{ "phidgetcxx::Phidget::release", ret };
-    }
-}
-
-void Phidget::retain() {
-    const auto ret = as_cxx(Phidget_retain(handle_));
-
-    if (!ret) {
-        throw Exception{ "phidgetcxx::Phidget::retain", ret };
     }
 }
 
@@ -73,7 +59,7 @@ ChannelClass Phidget::channel_class() const {
 }
 
 gsl::czstring_span<> Phidget::channel_class_name() const {
-    gsl::czstring<> name = nullptr;
+    gsl::czstring<> name;
     const auto ret = as_cxx(Phidget_getChannelClassName(handle_, &name));
 
     if (!ret) {
@@ -84,7 +70,7 @@ gsl::czstring_span<> Phidget::channel_class_name() const {
 }
 
 gsl::czstring_span<> Phidget::channel_name() const {
-    gsl::czstring<> name = nullptr;
+    gsl::czstring<> name;
     const auto ret = as_cxx(Phidget_getChannelName(handle_, &name));
 
     if (!ret) {
@@ -137,29 +123,118 @@ Phidget::device_channel_count(const ChannelClass channel_class) const {
     return channel_count;
 }
 
-DeviceClass Phidget::device_class() const;
+DeviceClass Phidget::device_class() const {
+    Phidget_DeviceClass class_c;
+    const auto ret = as_cxx(Phidget_getDeviceClass(handle_, &class_c));
 
-gsl::cstring_span<> Phidget::device_class_name() const;
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_class", ret };
+    }
 
-DeviceId Phidget::device_id() const;
+    return as_cxx(class_c);
+}
 
-Reference<gsl::czstring_span<>> Phidget::device_label();
+gsl::czstring_span<> Phidget::device_class_name() const {
+    gsl::czstring<> name;
+    const auto ret = as_cxx(Phidget_getDeviceClassName(handle_, &name));
 
-gsl::czstring_span<> Phidget::device_label() const;
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_class_name", ret };
+    }
 
-gsl::czstring_span<> Phidget::device_name() const;
+    return detail::as_span(name);
+}
 
-Reference<std::int32_t> Phidget::device_serial_number();
+DeviceId Phidget::device_id() const {
+    Phidget_DeviceID id;
+    const auto ret = as_cxx(Phidget_getDeviceID(handle_, &id));
 
-std::int32_t Phidget::device_serial_number() const;
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_id", ret };
+    }
 
-gsl::czstring_span<> Phidget::device_sku() const;
+    return as_cxx(id);
+}
 
-int Phidget::device_version() const;
+Reference<gsl::czstring_span<>> Phidget::device_label() {
+    return { *this, &Phidget::set_device_label, &Phidget::get_device_label };
+}
 
-bool Phidget::is_channel() const;
+gsl::czstring_span<> Phidget::device_label() const {
+    gsl::czstring<> label;
+    const auto ret = as_cxx(Phidget_getDeviceLabel(handle_, &label));
 
-bool Phidget::is_local() const;
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_id", ret };
+    }
+
+    return detail::as_span(label);
+}
+
+gsl::czstring_span<> Phidget::device_name() const {
+    gsl::czstring<> name;
+    const auto ret = as_cxx(Phidget_getDeviceName(handle_, &name));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_name", ret };
+    }
+
+    return detail::as_span(name);
+}
+
+Reference<std::int32_t> Phidget::device_serial_number() {
+    return { *this, &Phidget::set_device_serial_number,
+             &Phidget::get_device_serial_number };
+}
+
+std::int32_t Phidget::device_serial_number() const {
+    return get_device_serial_number();
+}
+
+gsl::czstring_span<> Phidget::device_sku() const {
+    gsl::czstring<> sku;
+    const auto ret = as_cxx(Phidget_getDeviceSKU(handle_, &sku));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_sku", ret };
+    }
+
+    return detail::as_span(sku);
+}
+
+int Phidget::device_version() const {
+    int version;
+    const auto ret = as_cxx(Phidget_getDeviceVersion(handle_, &version));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_version", ret };
+    }
+
+    return version;
+}
+
+bool Phidget::is_channel() const {
+    int is_channel;
+    const auto ret = as_cxx(Phidget_getIsChannel(handle_, &is_channel));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::is_channel", ret };
+    }
+
+    return static_cast<bool>(is_channel);
+}
+
+bool Phidget::is_local() const {
+    return get_is_local();
+}
+
+Reference<bool> Phidget::is_remote() {
+    return { *this, &Phidget::set_is_remote, &Phidget::get_is_remote };
+}
+
+bool Phidget::is_remote() const {
+    return get_is_remote();
+}
 
 void Phidget::open() {
     const auto ret = as_cxx(Phidget_open(handle_));
@@ -186,6 +261,64 @@ Phidget::open_wait_for_attachment(const std::chrono::milliseconds timeout) {
     }
 }
 
+RetainedPhidget Phidget::parent() const {
+    PhidgetHandle handle;
+    const auto ret = as_cxx(Phidget_getParent(handle_, &handle));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::parent", ret };
+    }
+
+    return RetainedPhidget::from_retained(handle);
+}
+
+gsl::czstring_span<> Phidget::server_hostname() const {
+    gsl::czstring<> hostname;
+    const auto ret = as_cxx(Phidget_getServerHostname(handle_, &hostname));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::server_hostname", ret };
+    }
+
+    return detail::as_span(hostname);
+}
+
+Reference<gsl::czstring_span<>> Phidget::server_name() {
+    return { *this, &Phidget::set_server_name, &Phidget::get_server_name };
+}
+
+gsl::czstring_span<> Phidget::server_name() const {
+    return get_server_name();
+}
+
+gsl::czstring_span<> Phidget::server_peer_name() const {
+    gsl::czstring<> name;
+    const auto ret = as_cxx(Phidget_getServerPeerName(handle_, &name));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::server_peer_name", ret };
+    }
+
+    return detail::as_span(name);
+}
+
+void Phidget::write_device_label(gsl::czstring_span<> device_label) {
+    // device label must be no more than 10 UTF-16 code points
+    // each code point is 16 bits, as expected
+    if (device_label.as_string_span().size() * CHAR_BIT > 160) {
+        throw std::invalid_argument{
+            "phidgetcxx::Phidget::write_device_label"
+        };
+    }
+
+    const auto ret =
+        as_cxx(Phidget_writeDeviceLabel(handle_, device_label.assume_z()));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::write_device_label", ret };
+    }
+}
+
 int Phidget::get_channel() const {
     int channel;
     const auto ret = as_cxx(Phidget_getChannel(handle_, &channel));
@@ -197,7 +330,7 @@ int Phidget::get_channel() const {
     return channel;
 }
 
-void Phidget::set_channel(const int &channel) {
+void Phidget::set_channel(const int channel) {
     const auto ret = as_cxx(Phidget_setChannel(handle_, channel));
 
     if (!ret) {
@@ -216,7 +349,7 @@ std::chrono::milliseconds Phidget::get_data_interval() const {
     return std::chrono::duration<std::uint32_t, std::milli>{ interval };
 }
 
-void Phidget::set_data_interval(const std::chrono::milliseconds &interval) {
+void Phidget::set_data_interval(const std::chrono::milliseconds interval) {
     if (interval.count() > std::numeric_limits<std::uint32_t>::max()
         || interval.count() < 0) {
         throw std::invalid_argument{ "phidgetcxx::Phidget::set_data_interval" };
@@ -231,7 +364,7 @@ void Phidget::set_data_interval(const std::chrono::milliseconds &interval) {
 }
 
 gsl::czstring_span<> Phidget::get_device_label() const {
-    gsl::czstring<> label = nullptr;
+    gsl::czstring<> label;
     const auto ret = as_cxx(Phidget_getDeviceLabel(handle_, &label));
 
     if (!ret) {
@@ -241,9 +374,9 @@ gsl::czstring_span<> Phidget::get_device_label() const {
     return detail::as_span(label);
 }
 
-void Phidget::set_device_label(const gsl::czstring_span<> &label) {
+void Phidget::set_device_label(const gsl::czstring_span<> label) {
     const auto ret =
-        as_cxx(Phidget_setDeviceLabel(handle_, label.ensure_z().data()));
+        as_cxx(Phidget_setDeviceLabel(handle_, label.assume_z()));
 
     if (!ret) {
         throw Exception{ "phidgetcxx::Phidget::set_device_label", ret };
@@ -262,12 +395,72 @@ std::int32_t Phidget::get_device_serial_number() const {
     return serial_number;
 }
 
-void Phidget::set_device_serial_number(const std::int32_t &serial_number) {
+void Phidget::set_device_serial_number(const std::int32_t serial_number) {
     const auto ret =
         as_cxx(Phidget_setDeviceSerialNumber(handle_, serial_number));
 
     if (!ret) {
         throw Exception{ "phidgetcxx::Phidget::set_device_serial_number", ret };
+    }
+}
+
+bool Phidget::get_is_local() const {
+    int is_local;
+    const auto ret = as_cxx(Phidget_getIsLocal(handle_, &is_local));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::get_is_local", ret };
+    }
+
+    return static_cast<bool>(is_local);
+}
+
+void Phidget::set_is_local(const bool is_local) {
+    const auto ret =
+        as_cxx(Phidget_setIsLocal(handle_, static_cast<int>(is_local)));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::set_is_local", ret };
+    }
+}
+
+bool Phidget::get_is_remote() const {
+    int is_remote;
+    const auto ret = as_cxx(Phidget_getIsRemote(handle_, &is_remote));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::get_is_remote", ret };
+    }
+
+    return static_cast<bool>(is_remote);
+}
+
+void Phidget::set_is_remote(const bool is_remote) {
+    const auto ret =
+        as_cxx(Phidget_setIsRemote(handle_, static_cast<int>(is_remote)));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::set_is_remote", ret };
+    }
+}
+
+gsl::czstring_span<> Phidget::get_server_name() const {
+    gsl::czstring<> name;
+    const auto ret = as_cxx(Phidget_getServerName(handle_, &name));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::get_server_name", ret };
+    }
+
+    return detail::as_span(name);
+}
+
+void Phidget::set_server_name(const gsl::czstring_span<> server_name) {
+    const auto ret =
+        as_cxx(Phidget_setServerName(handle_, server_name.assume_z()));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::set_server_name", ret };
     }
 }
 
