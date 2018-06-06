@@ -12,12 +12,39 @@ namespace phidgetcxx {
 constexpr std::int32_t SERIAL_NUMBER_ANY = PHIDGET_SERIALNUMBER_ANY;
 constexpr int HUB_PORT_ANY = PHIDGET_HUBPORT_ANY;
 constexpr int CHANNEL_ANY = PHIDGET_CHANNEL_ANY;
-const gsl::czstring_span<> LABEL_ANY{
-    gsl::cstring_span<>{ static_cast<const char*>(nullptr),
-                         static_cast<std::ptrdiff_t>(0) }
-};
+constexpr LabelAnyTag LABEL_ANY{ };
 constexpr std::chrono::milliseconds TIMEOUT_INFINITE{ PHIDGET_TIMEOUT_INFINITE };
 constexpr std::chrono::milliseconds TIMEOUT_DEFAULT{ PHIDGET_TIMEOUT_DEFAULT };
+
+LabelReference& LabelReference::operator=(const LabelReference &other) {
+    set(other.get());
+
+    return *this;
+}
+
+LabelReference& LabelReference::operator=(const gsl::czstring_span<> label) {
+    set(label);
+
+    return *this;
+}
+
+LabelReference& LabelReference::operator=(LabelAnyTag) {
+    phidget_ptr_->set_device_label(LabelAnyTag{ });
+
+    return *this;
+}
+
+LabelReference::operator gsl::czstring_span<>() const {
+    return get();
+}
+
+gsl::czstring_span<> LabelReference::get() const {
+    return phidget_ptr_->get_device_label();
+}
+
+void LabelReference::set(const gsl::czstring_span<> label) {
+    phidget_ptr_->set_device_label(label);
+}
 
 Phidget::~Phidget() {
     // this is bad style
@@ -154,8 +181,8 @@ DeviceId Phidget::device_id() const {
     return as_cxx(id);
 }
 
-Reference<gsl::czstring_span<>> Phidget::device_label() {
-    return { *this, &Phidget::set_device_label, &Phidget::get_device_label };
+LabelReference Phidget::device_label() {
+    return { *this };
 }
 
 gsl::czstring_span<> Phidget::device_label() const {
@@ -405,6 +432,14 @@ gsl::czstring_span<> Phidget::get_device_label() const {
 void Phidget::set_device_label(const gsl::czstring_span<> label) {
     const auto ret =
         as_cxx(Phidget_setDeviceLabel(handle_, label.assume_z()));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::set_device_label", ret };
+    }
+}
+
+void Phidget::set_device_label(LabelAnyTag) {
+    const auto ret = as_cxx(Phidget_setDeviceLabel(handle_, PHIDGET_LABEL_ANY));
 
     if (!ret) {
         throw Exception{ "phidgetcxx::Phidget::set_device_label", ret };

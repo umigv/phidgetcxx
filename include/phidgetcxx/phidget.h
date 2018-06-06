@@ -18,10 +18,12 @@
 
 namespace phidgetcxx {
 
+struct LabelAnyTag { };
+
 extern const std::int32_t SERIAL_NUMBER_ANY;
 extern const int HUB_PORT_ANY;
 extern const int CHANNEL_ANY;
-extern const gsl::czstring_span<> LABEL_ANY;
+extern const LabelAnyTag LABEL_ANY;
 extern const std::chrono::milliseconds TIMEOUT_INFINITE;
 extern const std::chrono::milliseconds TIMEOUT_DEFAULT;
 
@@ -67,11 +69,36 @@ private:
     GetPtrT get_ptr_;
 };
 
+class LabelReference {
+public:
+    friend Phidget;
+
+    LabelReference& operator=(const LabelReference &other);
+
+    LabelReference& operator=(gsl::czstring_span<> label);
+
+    LabelReference& operator=(LabelAnyTag);
+
+    operator gsl::czstring_span<>() const;
+
+private:
+    constexpr LabelReference(Phidget &phidget) noexcept
+    : phidget_ptr_{ &phidget } { }
+
+    gsl::czstring_span<> get() const;
+
+    void set(gsl::czstring_span<> label);
+
+    gsl::not_null<Phidget*> phidget_ptr_;
+};
+
 // wrapper around the PhidgetHandle C type
 class Phidget {
 public:
     template <typename T>
     friend class Reference;
+
+    friend LabelReference;
 
     friend RetainedPhidget;
 
@@ -107,7 +134,7 @@ public:
 
     DeviceId device_id() const;
 
-    Reference<gsl::czstring_span<>> device_label();
+    LabelReference device_label();
 
     gsl::czstring_span<> device_label() const;
 
@@ -170,6 +197,8 @@ private:
     gsl::czstring_span<> get_device_label() const;
 
     void set_device_label(gsl::czstring_span<> label);
+
+    void set_device_label(LabelAnyTag);
 
     std::int32_t get_device_serial_number() const;
 
