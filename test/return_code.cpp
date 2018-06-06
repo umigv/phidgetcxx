@@ -7,7 +7,7 @@
 
 TEST_CASE("ReturnCodes convert properly", "[phidgetcxx][ReturnCode]") {
     const auto code_c = EPHIDGET_OK;
-    const auto code_cxx = phidgetcxx::as_return_code(code_c);
+    const auto code_cxx = phidgetcxx::as_cxx(code_c);
 
     REQUIRE(code_cxx == phidgetcxx::ReturnCode::Ok);
 
@@ -20,5 +20,5 @@ TEST_CASE("ReturnCodes convert properly", "[phidgetcxx][ReturnCode]") {
 
     const std::string description_c = description_cz;
 
-    REQUIRE(description_cxx == description_c);
+    REQUIRE(description_cxx.as_string_span() == description_c);
 }
