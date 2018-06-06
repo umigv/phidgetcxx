@@ -20,3 +20,6 @@ target_link_libraries(phidgetcxx ${PHIDGET22_LIBRARIES})
 
 add_executable(test_return_code test/catch_main.cpp test/return_code.cpp)
 target_link_libraries(test_return_code phidgetcxx)
+
+add_executable(test_phidget test/catch_main.cpp test/phidget.cpp)
+target_link_libraries(test_phidget phidgetcxx)
