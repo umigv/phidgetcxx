@@ -9,6 +9,16 @@
 
 namespace phidgetcxx {
 
+constexpr std::int32_t SERIAL_NUMBER_ANY = PHIDGET_SERIALNUMBER_ANY;
+constexpr int HUB_PORT_ANY = PHIDGET_HUBPORT_ANY;
+constexpr int CHANNEL_ANY = PHIDGET_CHANNEL_ANY;
+const gsl::czstring_span<> LABEL_ANY{
+    gsl::cstring_span<>{ static_cast<const char*>(nullptr),
+                         static_cast<std::ptrdiff_t>(0) }
+};
+constexpr std::chrono::milliseconds TIMEOUT_INFINITE{ PHIDGET_TIMEOUT_INFINITE };
+constexpr std::chrono::milliseconds TIMEOUT_DEFAULT{ PHIDGET_TIMEOUT_DEFAULT };
+
 Phidget::~Phidget() {
     // this is bad style
     if (is_attached()) {
@@ -201,6 +211,36 @@ int Phidget::device_version() const {
     return version;
 }
 
+RetainedPhidget Phidget::hub() const {
+    PhidgetHandle hub;
+    const auto ret = as_cxx(Phidget_getHub(handle_, &hub));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::hub", ret };
+    }
+
+    return RetainedPhidget::from_retained(hub);
+}
+
+Reference<int> Phidget::hub_port() {
+    return { *this, &Phidget::set_hub_port, &Phidget::get_hub_port };
+}
+
+int Phidget::hub_port() const {
+    return get_hub_port();
+}
+
+int Phidget::hub_port_count() const {
+    int count;
+    const auto ret = as_cxx(Phidget_getHubPortCount(handle_, &count));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::hub_port_count", ret };
+    }
+
+    return count;
+}
+
 bool Phidget::is_channel() const {
     int is_channel;
     const auto ret = as_cxx(Phidget_getIsChannel(handle_, &is_channel));
@@ -389,6 +429,25 @@ void Phidget::set_device_serial_number(const std::int32_t serial_number) {
 
     if (!ret) {
         throw Exception{ "phidgetcxx::Phidget::set_device_serial_number", ret };
+    }
+}
+
+int Phidget::get_hub_port() const {
+    int port;
+    const auto ret = as_cxx(Phidget_getHubPort(handle_, &port));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::get_hub_port", ret };
+    }
+
+    return port;
+}
+
+void Phidget::set_hub_port(const int port) {
+    const auto ret = as_cxx(Phidget_setHubPort(handle_, port));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::set_hub_port", ret };
     }
 }
 

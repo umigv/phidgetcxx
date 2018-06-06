@@ -18,6 +18,13 @@
 
 namespace phidgetcxx {
 
+extern const std::int32_t SERIAL_NUMBER_ANY;
+extern const int HUB_PORT_ANY;
+extern const int CHANNEL_ANY;
+extern const gsl::czstring_span<> LABEL_ANY;
+extern const std::chrono::milliseconds TIMEOUT_INFINITE;
+extern const std::chrono::milliseconds TIMEOUT_DEFAULT;
+
 template <typename T>
 class Reference {
 public:
@@ -114,6 +121,14 @@ public:
 
     int device_version() const;
 
+    RetainedPhidget hub() const;
+
+    Reference<int> hub_port();
+
+    int hub_port() const;
+
+    int hub_port_count() const;
+
     bool is_channel() const;
 
     Reference<bool> is_local();
@@ -159,6 +174,10 @@ private:
     std::int32_t get_device_serial_number() const;
 
     void set_device_serial_number(std::int32_t serial_number);
+
+    int get_hub_port() const;
+
+    void set_hub_port(int port);
 
     bool get_is_local() const;
 
