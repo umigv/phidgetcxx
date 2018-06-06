@@ -3,6 +3,8 @@
 
 #include "phidgetcxx/channel_class.h"
 #include "phidgetcxx/channel_subclass.h"
+#include "phidgetcxx/device_class.h"
+#include "phidgetcxx/device_id.h"
 #include "phidgetcxx/exception.h"
 #include "phidgetcxx/return_code.h"
 
@@ -96,7 +98,7 @@ public:
 
     DeviceClass device_class() const;
 
-    gsl::cstring_span<> device_class_name() const;
+    gsl::czstring_span<> device_class_name() const;
 
     DeviceId device_id() const;
 
