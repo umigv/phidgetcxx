@@ -1,23 +1,10 @@
 #include "phidgetcxx/static.h"
 
+#include "phidgetcxx/common.h"
+
 #include <cstring>
 
 namespace phidgetcxx {
-namespace detail {
-
-static inline gsl::czstring_span<> as_span(const gsl::czstring<> string) {
-    if (!string) {
-        throw std::invalid_argument{ "phidgetcxx::detail::as_span" };
-    }
-
-    const auto length =
-        static_cast<gsl::cstring_span<>::index_type>(std::strlen(string));
-    const gsl::cstring_span<> span{ string, length };
-
-    return { span };
-}
-
-} // namespace detail
 
 gsl::czstring_span<> get_error_description(const ReturnCode code) {
     gsl::czstring<> description = nullptr;
@@ -29,7 +16,7 @@ gsl::czstring_span<> get_error_description(const ReturnCode code) {
         throw Exception{ "phidgetcxx::get_error_description", ret };
     }
 
-    return detail::as_span(description);
+    return as_span(gsl::not_null<gsl::czstring<>>{ description });
 }
 
 void finalize(const std::int32_t flags) {
@@ -48,7 +35,7 @@ gsl::czstring_span<> get_library_version() {
         throw Exception{ "phidgetcxx::get_library_version", ret };
     }
 
-    return detail::as_span(version);
+    return as_span(gsl::not_null<gsl::czstring<>>{ version });
 }
 
 } // namespace phidgetcxx
