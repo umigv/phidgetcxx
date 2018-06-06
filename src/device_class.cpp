@@ -1,1 +1,1 @@
-#include "device_class.h"
+#include "phidgetcxx/device_class.h"
