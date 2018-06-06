@@ -6,6 +6,7 @@
 #include "phidgetcxx/exception.h"
 #include "phidgetcxx/return_code.h"
 
+#include <cstdint>
 #include <chrono>
 
 #include <gsl/gsl>
@@ -15,45 +16,53 @@ namespace phidgetcxx {
 
 class Phidget;
 
-class ChannelReference {
+template <typename T>
+class Reference {
 public:
     friend Phidget;
 
-    ChannelReference& operator=(const ChannelReference &other);
+    Reference& operator=(const Reference &other) {
+        set(other.get());
 
-    ChannelReference& operator=(int channel);
+        return *this;
+    }
 
-    operator int() const;
+    Reference& operator=(const T &value) {
+        set(value);
 
-private:
-    constexpr explicit ChannelReference(Phidget &phidget) noexcept
-    : phidget_ptr_{ &phidget } { }
+        return *this;
+    }
 
-    gsl::not_null<Phidget*> phidget_ptr_;
-};
-
-class DataIntervalReference {
-public:
-    friend Phidget;
-
-    DataIntervalReference& operator=(const DataIntervalReference &other);
-
-    DataIntervalReference& operator=(std::chrono::milliseconds interval);
-
-    operator std::chrono::milliseconds() const;
+    operator T() const {
+        return get();
+    }
 
 private:
-    constexpr explicit DataIntervalReference(Phidget &phidget) noexcept
-    : phidget_ptr_{ &phidget } { }
+    using SetPtrT = void (Phidget::*)(const T&);
+    using GetPtrT = T (Phidget::*)() const;
+
+    constexpr Reference(Phidget &phidget, const SetPtrT set_ptr,
+                        const GetPtrT get_ptr) noexcept
+    : phidget_ptr_{ &phidget }, set_ptr_{ set_ptr }, get_ptr_{ get_ptr } { }
+
+    T get() const {
+        return ((*phidget_ptr_).*get_ptr_)();
+    }
+
+    void set(const T &value) {
+        return ((*phidget_ptr_).*set_ptr_)(value);
+    }
 
     gsl::not_null<Phidget*> phidget_ptr_;
+    SetPtrT set_ptr_;
+    GetPtrT get_ptr_;
 };
 
 // wrapper around the PhidgetHandle C type
 class Phidget {
 public:
-    friend ChannelReference;
-    friend DataIntervalReference;
+    template <typename T>
+    friend class Reference;
 
     Phidget() = default;
 
@@ -65,23 +74,49 @@ public:
 
     bool is_attached() const;
 
-    ChannelReference channel();
+    Reference<int> channel();
 
     int channel() const;
 
     ChannelClass channel_class() const;
 
-    gsl::cstring_span<> channel_class_name() const;
+    gsl::czstring_span<> channel_class_name() const;
 
-    gsl::cstring_span<> channel_name() const;
+    gsl::czstring_span<> channel_name() const;
 
     ChannelSubclass channel_subclass() const;
 
     void close();
 
-    DataIntervalReference data_interval();
+    Reference<std::chrono::milliseconds> data_interval();
 
     std::chrono::milliseconds data_interval() const;
+
+    std::uint32_t device_channel_count(ChannelClass channel_class) const;
+
+    DeviceClass device_class() const;
+
+    gsl::cstring_span<> device_class_name() const;
+
+    DeviceId device_id() const;
+
+    Reference<gsl::czstring_span<>> device_label();
+
+    gsl::czstring_span<> device_label() const;
+
+    gsl::czstring_span<> device_name() const;
+
+    Reference<std::int32_t> device_serial_number();
+
+    std::int32_t device_serial_number() const;
+
+    gsl::czstring_span<> device_sku() const;
+
+    int device_version() const;
+
+    bool is_channel() const;
+
+    bool is_local() const;
 
     void open();
 
@@ -90,11 +125,19 @@ public:
 private:
     int get_channel() const;
 
-    void set_channel(int channel) const;
+    void set_channel(const int &channel);
 
     std::chrono::milliseconds get_data_interval() const;
 
-    void set_data_interval(std::chrono::milliseconds interval);
+    void set_data_interval(const std::chrono::milliseconds &interval);
+
+    gsl::czstring_span<> get_device_label() const;
+
+    void set_device_label(const gsl::czstring_span<> &label);
+
+    std::int32_t get_device_serial_number() const;
+
+    void set_device_serial_number(const std::int32_t &serial_number);
 
     PhidgetHandle handle_;
 };

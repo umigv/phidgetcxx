@@ -4,44 +4,21 @@
 #include <limits>
 
 namespace phidgetcxx {
+namespace detail {
 
-ChannelReference& ChannelReference::operator=(const ChannelReference &other) {
-    const int other_channel = other.phidget_ptr_->get_channel();
-    phidget_ptr_->set_channel(other_channel);
+static inline gsl::czstring_span<> as_span(const gsl::czstring<> string) {
+    if (!string) {
+        throw std::invalid_argument{ "phidgetcxx::detail::as_span" };
+    }
 
-    return *this;
+    const auto length =
+        static_cast<gsl::cstring_span<>::index_type>(std::strlen(string));
+    const gsl::cstring_span<> span{ string, length };
+
+    return { span };
 }
 
-ChannelReference& ChannelReference::operator=(const int channel) {
-    phidget_ptr_->set_channel(channel);
-
-    return *this;
-}
-
-ChannelReference::operator int() const {
-    return phidget_ptr_->get_channel();
-}
-
-DataIntervalReference&
-DataIntervalReference::operator=(const DataIntervalReference &other) {
-    const std::chrono::milliseconds other_interval =
-        other.phidget_ptr_->get_data_interval();
-
-    phidget_ptr_->set_data_interval(other_interval);
-
-    return *this;
-}
-
-DataIntervalReference&
-DataIntervalReference::operator=(const std::chrono::milliseconds interval) {
-    phidget_ptr_->set_data_interval(interval);
-
-    return *this;
-}
-
-DataIntervalReference::operator std::chrono::milliseconds() const {
-    return phidget_ptr_->get_data_interval();
-}
+} // namespace detail
 
 Phidget::~Phidget() {
     if (is_attached()) {
@@ -76,8 +53,8 @@ bool Phidget::is_attached() const {
     return static_cast<bool>(is_attached);
 }
 
-ChannelReference Phidget::channel() {
-    return ChannelReference{ *this };
+Reference<int> Phidget::channel() {
+    return { *this, &Phidget::set_channel, &Phidget::get_channel };
 }
 
 int Phidget::channel() const {
@@ -95,7 +72,7 @@ ChannelClass Phidget::channel_class() const {
     return as_cxx(channel_class);
 }
 
-gsl::cstring_span<> Phidget::channel_class_name() const {
+gsl::czstring_span<> Phidget::channel_class_name() const {
     gsl::czstring<> name = nullptr;
     const auto ret = as_cxx(Phidget_getChannelClassName(handle_, &name));
 
@@ -103,13 +80,10 @@ gsl::cstring_span<> Phidget::channel_class_name() const {
         throw Exception{ "phidgetcxx::Phidget::channel_class_name", ret };
     }
 
-    const auto length =
-        static_cast<gsl::cstring_span<>::index_type>(std::strlen(name));
-
-    return { name, length };
+    return detail::as_span(name);
 }
 
-gsl::cstring_span<> Phidget::channel_name() const {
+gsl::czstring_span<> Phidget::channel_name() const {
     gsl::czstring<> name = nullptr;
     const auto ret = as_cxx(Phidget_getChannelName(handle_, &name));
 
@@ -117,10 +91,7 @@ gsl::cstring_span<> Phidget::channel_name() const {
         throw Exception{ "phidgetcxx::Phidget::channel_name", ret };
     }
 
-    const auto length =
-        static_cast<gsl::cstring_span<>::index_type>(std::strlen(name));
-
-    return { name, length };
+    return detail::as_span(name);
 }
 
 ChannelSubclass Phidget::channel_subclass() const {
@@ -142,13 +113,53 @@ void Phidget::close() {
     }
 }
 
-DataIntervalReference Phidget::data_interval() {
-    return DataIntervalReference{ *this };
+Reference<std::chrono::milliseconds> Phidget::data_interval() {
+    return { *this, &Phidget::set_data_interval, &Phidget::get_data_interval };
 }
 
 std::chrono::milliseconds Phidget::data_interval() const {
     return get_data_interval();
 }
+
+std::uint32_t
+Phidget::device_channel_count(const ChannelClass channel_class) const {
+    const auto channel_class_c =
+        static_cast<Phidget_ChannelClass>(channel_class);
+    std::uint32_t channel_count;
+    const auto ret =
+        as_cxx(Phidget_getDeviceChannelCount(handle_, channel_class_c,
+                                             &channel_count));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::device_channel_count", ret };
+    }
+
+    return channel_count;
+}
+
+DeviceClass Phidget::device_class() const;
+
+gsl::cstring_span<> Phidget::device_class_name() const;
+
+DeviceId Phidget::device_id() const;
+
+Reference<gsl::czstring_span<>> Phidget::device_label();
+
+gsl::czstring_span<> Phidget::device_label() const;
+
+gsl::czstring_span<> Phidget::device_name() const;
+
+Reference<std::int32_t> Phidget::device_serial_number();
+
+std::int32_t Phidget::device_serial_number() const;
+
+gsl::czstring_span<> Phidget::device_sku() const;
+
+int Phidget::device_version() const;
+
+bool Phidget::is_channel() const;
+
+bool Phidget::is_local() const;
 
 void Phidget::open() {
     const auto ret = as_cxx(Phidget_open(handle_));
@@ -186,7 +197,7 @@ int Phidget::get_channel() const {
     return channel;
 }
 
-void Phidget::set_channel(const int channel) const {
+void Phidget::set_channel(const int &channel) {
     const auto ret = as_cxx(Phidget_setChannel(handle_, channel));
 
     if (!ret) {
@@ -205,7 +216,7 @@ std::chrono::milliseconds Phidget::get_data_interval() const {
     return std::chrono::duration<std::uint32_t, std::milli>{ interval };
 }
 
-void Phidget::set_data_interval(const std::chrono::milliseconds interval) {
+void Phidget::set_data_interval(const std::chrono::milliseconds &interval) {
     if (interval.count() > std::numeric_limits<std::uint32_t>::max()
         || interval.count() < 0) {
         throw std::invalid_argument{ "phidgetcxx::Phidget::set_data_interval" };
@@ -216,6 +227,47 @@ void Phidget::set_data_interval(const std::chrono::milliseconds interval) {
 
     if (!ret) {
         throw Exception{ "phidgetcxx::Phidget::set_data_interval", ret };
+    }
+}
+
+gsl::czstring_span<> Phidget::get_device_label() const {
+    gsl::czstring<> label = nullptr;
+    const auto ret = as_cxx(Phidget_getDeviceLabel(handle_, &label));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::get_device_label", ret };
+    }
+
+    return detail::as_span(label);
+}
+
+void Phidget::set_device_label(const gsl::czstring_span<> &label) {
+    const auto ret =
+        as_cxx(Phidget_setDeviceLabel(handle_, label.ensure_z().data()));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::set_device_label", ret };
+    }
+}
+
+std::int32_t Phidget::get_device_serial_number() const {
+    std::int32_t serial_number;
+    const auto ret =
+        as_cxx(Phidget_getDeviceSerialNumber(handle_, &serial_number));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::get_device_serial_number", ret };
+    }
+
+    return serial_number;
+}
+
+void Phidget::set_device_serial_number(const std::int32_t &serial_number) {
+    const auto ret =
+        as_cxx(Phidget_setDeviceSerialNumber(handle_, serial_number));
+
+    if (!ret) {
+        throw Exception{ "phidgetcxx::Phidget::set_device_serial_number", ret };
     }
 }
 
