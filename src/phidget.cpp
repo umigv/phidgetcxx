@@ -1,5 +1,6 @@
 #include "phidgetcxx/phidget.h"
 
+#include "phidgetcxx/common.h"
 #include "phidgetcxx/retained_phidget.h"
 
 #include <climits>
@@ -7,19 +8,6 @@
 #include <limits>
 
 namespace phidgetcxx {
-namespace detail {
-
-static inline gsl::czstring_span<> as_span(const gsl::czstring<> string) {
-    if (!string) {
-        throw std::invalid_argument{ "phidgetcxx::detail::as_span" };
-    }
-
-    const gsl::cstring_span<> span = gsl::ensure_z(string);
-
-    return { span };
-}
-
-} // namespace detail
 
 Phidget::~Phidget() {
     // this is bad style
@@ -66,7 +54,7 @@ gsl::czstring_span<> Phidget::channel_class_name() const {
         throw Exception{ "phidgetcxx::Phidget::channel_class_name", ret };
     }
 
-    return detail::as_span(name);
+    return as_span(gsl::not_null<gsl::czstring<>>{ name });
 }
 
 gsl::czstring_span<> Phidget::channel_name() const {
@@ -77,7 +65,7 @@ gsl::czstring_span<> Phidget::channel_name() const {
         throw Exception{ "phidgetcxx::Phidget::channel_name", ret };
     }
 
-    return detail::as_span(name);
+    return as_span(gsl::not_null<gsl::czstring<>>{ name });
 }
 
 ChannelSubclass Phidget::channel_subclass() const {
@@ -142,7 +130,7 @@ gsl::czstring_span<> Phidget::device_class_name() const {
         throw Exception{ "phidgetcxx::Phidget::device_class_name", ret };
     }
 
-    return detail::as_span(name);
+    return as_span(gsl::not_null<gsl::czstring<>>{ name });
 }
 
 DeviceId Phidget::device_id() const {
@@ -168,7 +156,7 @@ gsl::czstring_span<> Phidget::device_label() const {
         throw Exception{ "phidgetcxx::Phidget::device_id", ret };
     }
 
-    return detail::as_span(label);
+    return as_span(gsl::not_null<gsl::czstring<>>{ label });
 }
 
 gsl::czstring_span<> Phidget::device_name() const {
@@ -179,7 +167,7 @@ gsl::czstring_span<> Phidget::device_name() const {
         throw Exception{ "phidgetcxx::Phidget::device_name", ret };
     }
 
-    return detail::as_span(name);
+    return as_span(gsl::not_null<gsl::czstring<>>{ name });
 }
 
 Reference<std::int32_t> Phidget::device_serial_number() {
@@ -199,7 +187,7 @@ gsl::czstring_span<> Phidget::device_sku() const {
         throw Exception{ "phidgetcxx::Phidget::device_sku", ret };
     }
 
-    return detail::as_span(sku);
+    return as_span(gsl::not_null<gsl::czstring<>>{ sku });
 }
 
 int Phidget::device_version() const {
@@ -280,7 +268,7 @@ gsl::czstring_span<> Phidget::server_hostname() const {
         throw Exception{ "phidgetcxx::Phidget::server_hostname", ret };
     }
 
-    return detail::as_span(hostname);
+    return as_span(gsl::not_null<gsl::czstring<>>{ hostname });
 }
 
 Reference<gsl::czstring_span<>> Phidget::server_name() {
@@ -299,7 +287,7 @@ gsl::czstring_span<> Phidget::server_peer_name() const {
         throw Exception{ "phidgetcxx::Phidget::server_peer_name", ret };
     }
 
-    return detail::as_span(name);
+    return as_span(gsl::not_null<gsl::czstring<>>{ name });
 }
 
 void Phidget::write_device_label(gsl::czstring_span<> device_label) {
@@ -371,7 +359,7 @@ gsl::czstring_span<> Phidget::get_device_label() const {
         throw Exception{ "phidgetcxx::Phidget::get_device_label", ret };
     }
 
-    return detail::as_span(label);
+    return as_span(gsl::not_null<gsl::czstring<>>{ label });
 }
 
 void Phidget::set_device_label(const gsl::czstring_span<> label) {
@@ -452,7 +440,7 @@ gsl::czstring_span<> Phidget::get_server_name() const {
         throw Exception{ "phidgetcxx::Phidget::get_server_name", ret };
     }
 
-    return detail::as_span(name);
+    return as_span(gsl::not_null<gsl::czstring<>>{ name });
 }
 
 void Phidget::set_server_name(const gsl::czstring_span<> server_name) {
