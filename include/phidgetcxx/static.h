@@ -10,11 +10,11 @@
 
 namespace phidgetcxx {
 
-gsl::cstring_span<> get_error_description(ReturnCode code);
+gsl::czstring_span<> get_error_description(ReturnCode code);
 
 void finalize(std::int32_t flags = 0);
 
-gsl::cstring_span<> get_library_version();
+gsl::czstring_span<> get_library_version();
 
 } // namespace phidgetcxx
 
