@@ -20,13 +20,6 @@
 
 namespace phidgetcxx {
 
-using AttachHandlerT = std::function<void(Phidget&)>;
-using DetachHandlerT = std::function<void(Phidget&)>;
-using ErrorHandlerT = std::function<void(Phidget&, ErrorEventCode,
-                                         gsl::czstring_span<>)>;
-using PropertyChangeHandlerT = std::function<void(Phidget&,
-                                                  gsl::czstring_span<>)>;
-
 struct LabelAnyTag { };
 
 extern const std::int32_t SERIAL_NUMBER_ANY;
@@ -108,6 +101,13 @@ public:
     friend class Reference;
     friend LabelReference;
     friend RetainedPhidget;
+
+    using AttachHandlerT = std::function<void(Phidget&)>;
+    using DetachHandlerT = std::function<void(Phidget&)>;
+    using ErrorHandlerT = std::function<void(Phidget&, ErrorEventCode,
+                                             gsl::czstring_span<>)>;
+    using PropertyChangeHandlerT = std::function<void(Phidget&,
+                                                      gsl::czstring_span<>)>;
 
     // gsl::not_null will throw if !handle
     explicit Phidget(PhidgetHandle handle);
