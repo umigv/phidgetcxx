@@ -109,10 +109,18 @@ public:
     using PropertyChangeHandlerT = std::function<void(Phidget&,
                                                       gsl::czstring_span<>)>;
 
+    Phidget(const Phidget &other);
+
+    Phidget(Phidget &&other) = delete;
+
     // gsl::not_null will throw if !handle
     explicit Phidget(PhidgetHandle handle);
 
     Phidget(std::nullptr_t) = delete;
+
+    Phidget& operator=(const Phidget &other);
+
+    Phidget& operator=(Phidget &&other) = delete;
 
     ~Phidget();
 
@@ -192,10 +200,13 @@ public:
 
     void write_device_label(gsl::czstring_span<> device_label);
 
-    AttachHandlerT attach_handler;
-    DetachHandlerT detach_handler;
-    ErrorHandlerT error_handler;
-    PropertyChangeHandlerT property_change_handler;
+    void set_attach_handler(AttachHandlerT handler);
+
+    void set_detach_handler(DetachHandlerT handler);
+
+    void set_error_handler(ErrorHandlerT handler);
+
+    void set_property_change_handler(PropertyChangeHandlerT handler);
 
 private:
     int get_channel() const;

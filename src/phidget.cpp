@@ -1,5 +1,6 @@
 #include "phidgetcxx/phidget.h"
 
+#include "globals.h"
 #include "phidgetcxx/common.h"
 #include "phidgetcxx/retained_phidget.h"
 
@@ -8,6 +9,23 @@
 #include <limits>
 
 namespace phidgetcxx {
+namespace detail {
+
+static std::int64_t add_ref(const PhidgetHandle handle) {
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+
+    return ++map[handle].num_refs;
+}
+
+static std::int64_t remove_ref(const PhidgetHandle handle) {
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+
+    return --map[handle].num_refs;
+}
+
+} // namespae detail
 
 constexpr std::int32_t SERIAL_NUMBER_ANY = PHIDGET_SERIALNUMBER_ANY;
 constexpr int HUB_PORT_ANY = PHIDGET_HUBPORT_ANY;
@@ -46,9 +64,34 @@ void LabelReference::set(const gsl::czstring_span<> label) {
     phidget_ptr_->set_device_label(label);
 }
 
-Phidget::Phidget(const PhidgetHandle handle) : handle_{ handle } { }
+Phidget::Phidget(const Phidget &other) : handle_{ other.handle_ } {
+    detail::add_ref(handle_);
+}
+
+Phidget::Phidget(const PhidgetHandle handle) : handle_{ handle } {
+    detail::add_ref(handle_);
+}
+
+Phidget& Phidget::operator=(const Phidget &other) {
+    if (this == &other) {
+        return *this;
+    }
+
+    detail::remove_ref(handle_);
+    handle_ = other.handle_;
+    detail::add_ref(handle_);
+
+    return *this;
+}
 
 Phidget::~Phidget() {
+    if (!detail::remove_ref(handle_)) {
+         const auto map_ref = detail::phidget_map();
+         auto &map = map_ref.get();
+
+         map.erase(handle_);
+    }
+
     // this is bad style
     if (is_attached()) {
         close();
@@ -376,6 +419,34 @@ void Phidget::write_device_label(gsl::czstring_span<> device_label) {
     }
 }
 
+void Phidget::set_attach_handler(AttachHandlerT handler) {
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+
+    map[handle_].attach_handler = std::move(handler);
+}
+
+void Phidget::set_detach_handler(DetachHandlerT handler) {
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+
+    map[handle_].detach_handler = std::move(handler);
+}
+
+void Phidget::set_error_handler(ErrorHandlerT handler) {
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+
+    map[handle_].error_handler = std::move(handler);
+}
+
+void Phidget::set_property_change_handler(PropertyChangeHandlerT handler) {
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+
+    map[handle_].property_change_handler = std::move(handler);
+}
+
 int Phidget::get_channel() const {
     int channel;
     const auto ret = as_cxx(Phidget_getChannel(handle_, &channel));
@@ -579,27 +650,43 @@ void Phidget::property_change_glue(PhidgetHandle, void *const self_opaque,
 }
 
 void Phidget::do_attach_handler() {
-    if (attach_handler) {
-        attach_handler(*this);
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+    auto &handler = map[handle_].attach_handler;
+
+    if (handler) {
+        handler(*this);
     }
 }
 
 void Phidget::do_detach_handler() {
-    if (detach_handler) {
-        detach_handler(*this);
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+    auto &handler = map[handle_].detach_handler;
+
+    if (handler) {
+        handler(*this);
     }
 }
 
 void Phidget::do_error_handler(const ErrorEventCode code,
                                const gsl::czstring_span<> description) {
-    if (error_handler) {
-        error_handler(*this, code, description);
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+    auto &handler = map[handle_].error_handler;
+
+    if (handler) {
+        handler(*this, code, description);
     }
 }
 
 void Phidget::do_property_change_handler(const gsl::czstring_span<> name) {
-    if (property_change_handler) {
-        property_change_handler(*this, name);
+    const auto map_ref = detail::phidget_map();
+    auto &map = map_ref.get();
+    auto &handler = map[handle_].property_change_handler;
+
+    if (handler) {
+        handler(*this, name);
     }
 }
 
