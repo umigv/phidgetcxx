@@ -46,6 +46,8 @@ void LabelReference::set(const gsl::czstring_span<> label) {
     phidget_ptr_->set_device_label(label);
 }
 
+Phidget::Phidget(const PhidgetHandle handle) : handle_{ handle } { }
+
 Phidget::~Phidget() {
     // this is bad style
     if (is_attached()) {
@@ -543,6 +545,61 @@ void Phidget::set_server_name(const gsl::czstring_span<> server_name) {
 
     if (!ret) {
         throw Exception{ "phidgetcxx::Phidget::set_server_name", ret };
+    }
+}
+
+void Phidget::attach_glue(PhidgetHandle, void *const self_opaque) {
+    auto &self = *reinterpret_cast<Phidget*>(self_opaque);
+
+    self.do_attach_handler();
+}
+
+void Phidget::detach_glue(PhidgetHandle, void *const self_opaque) {
+    auto &self = *reinterpret_cast<Phidget*>(self_opaque);
+
+    self.do_detach_handler();
+}
+
+void Phidget::error_glue(PhidgetHandle, void *const self_opaque,
+                         const Phidget_ErrorEventCode code_c,
+                         const gsl::czstring<> description_c) {
+    auto &self = *reinterpret_cast<Phidget*>(self_opaque);
+    const auto code = as_cxx(code_c);
+    const gsl::czstring_span<> description{ gsl::ensure_z(description_c) };
+
+    self.do_error_handler(code, description);
+}
+
+void Phidget::property_change_glue(PhidgetHandle, void *const self_opaque,
+                                   const gsl::czstring<> name_c) {
+    auto &self = *reinterpret_cast<Phidget*>(self_opaque);
+    const gsl::czstring_span<> name{ gsl::ensure_z(name_c) };
+
+    self.do_property_change_handler(name);
+}
+
+void Phidget::do_attach_handler() {
+    if (attach_handler) {
+        attach_handler(*this);
+    }
+}
+
+void Phidget::do_detach_handler() {
+    if (detach_handler) {
+        detach_handler(*this);
+    }
+}
+
+void Phidget::do_error_handler(const ErrorEventCode code,
+                               const gsl::czstring_span<> description) {
+    if (error_handler) {
+        error_handler(*this, code, description);
+    }
+}
+
+void Phidget::do_property_change_handler(const gsl::czstring_span<> name) {
+    if (property_change_handler) {
+        property_change_handler(*this, name);
     }
 }
 
