@@ -3,9 +3,15 @@
 
 #include "phidgetcxx/channel_class.h"
 #include "phidgetcxx/channel_subclass.h"
+#include "phidgetcxx/common.h"
+#include "phidgetcxx/device_class.h"
+#include "phidgetcxx/device_id.h"
+#include "phidgetcxx/error_event_code.h"
 #include "phidgetcxx/exception.h"
 #include "phidgetcxx/phidget.h"
+#include "phidgetcxx/retained_phidget.h"
 #include "phidgetcxx/return_code.h"
 #include "phidgetcxx/static.h"
+
 
 #endif
