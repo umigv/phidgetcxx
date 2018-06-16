@@ -5,6 +5,7 @@
 #include "phidgetcxx/channel_subclass.h"
 #include "phidgetcxx/device_class.h"
 #include "phidgetcxx/device_id.h"
+#include "phidgetcxx/error_event_code.h"
 #include "phidgetcxx/exception.h"
 #include "phidgetcxx/phidget_fwd.h"
 #include "phidgetcxx/retained_phidget_fwd.h"
@@ -12,11 +13,19 @@
 
 #include <cstdint>
 #include <chrono>
+#include <functional>
 
 #include <gsl/gsl>
 #include <phidget22.h>
 
 namespace phidgetcxx {
+
+using AttachHandlerT = std::function<void(Phidget&)>;
+using DetachHandlerT = std::function<void(Phidget&)>;
+using ErrorHandlerT = std::function<void(Phidget&, ErrorEventCode,
+                                         gsl::czstring_span<>)>;
+using PropertyChangeHandlerT = std::function<void(Phidget&,
+                                                  gsl::czstring_span<>)>;
 
 struct LabelAnyTag { };
 
@@ -97,12 +106,13 @@ class Phidget {
 public:
     template <typename T>
     friend class Reference;
-
     friend LabelReference;
-
     friend RetainedPhidget;
 
-    Phidget() = default;
+    // gsl::not_null will throw if !handle
+    explicit Phidget(PhidgetHandle handle);
+
+    Phidget(std::nullptr_t) = delete;
 
     ~Phidget();
 
@@ -182,10 +192,12 @@ public:
 
     void write_device_label(gsl::czstring_span<> device_label);
 
-private:
-    constexpr explicit Phidget(const PhidgetHandle handle) noexcept
-    : handle_{ handle } { }
+    AttachHandlerT attach_handler;
+    DetachHandlerT detach_handler;
+    ErrorHandlerT error_handler;
+    PropertyChangeHandlerT property_change_handler;
 
+private:
     int get_channel() const;
 
     void set_channel(int channel);
@@ -220,7 +232,27 @@ private:
 
     void set_server_name(gsl::czstring_span<> server_name);
 
-    PhidgetHandle handle_;
+    static void attach_glue(PhidgetHandle, void *self);
+
+    static void detach_glue(PhidgetHandle, void *self);
+
+    static void error_glue(PhidgetHandle, void *self,
+                           Phidget_ErrorEventCode code,
+                           gsl::czstring<> description);
+
+    static void property_change_glue(PhidgetHandle, void *self,
+                                     gsl::czstring<> name);
+
+    void do_attach_handler();
+
+    void do_detach_handler();
+
+    void do_error_handler(ErrorEventCode code,
+                          gsl::czstring_span<> description);
+
+    void do_property_change_handler(gsl::czstring_span<> name);
+
+    gsl::not_null<PhidgetHandle> handle_;
 };
 
 } // namespace phidgetcxx
